@@ -5,9 +5,11 @@
 #
 # Copyright (C) 2020 KFERMercer
 #
-name: Local-CI
+name: Extra-CI
 
 on:
+  schedule:
+    - cron: 0 0 * * 5
   release:
     types: [published]
   workflow_dispatch:
@@ -19,7 +21,7 @@ jobs:
   build_openwrt:
     name: Build OpenWrt firmware
 
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-18.04
 
     if: github.event.repository.owner.id == github.event.sender.id
 
@@ -30,28 +32,31 @@ jobs:
           ref: master
           fetch-depth: 0
 
-      # - name: Merge Upstream
-      #   uses: exions/merge-upstream@v1
-      #   with:
-      #     upstream: coolsnowwolf/lede
-      #     upstream-branch: master
-      #     branch: master
-      #     token: ${{ secrets.TOKEN }}
+      - name: Merge Upstream
+        uses: exions/merge-upstream@v1
+        with:
+          upstream: coolsnowwolf/lede
+          upstream-branch: master
+          branch: master
+          token: ${{ secrets.TOKEN }}
 
-      # - name: Push changes
-      #   uses: ad-m/github-push-action@master
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     branch: ${{ github.ref }}
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
 
       - name: Space cleanup
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update
-          sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs gcc-multilib g++-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler antlr3 gperf swig
-          sudo apt-get -y autoremove --purge
-          sudo apt-get clean
+          docker rmi `docker images -q`
+          sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d
+          sudo -E apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php* android*
+          sudo -E apt-get update
+          sudo -E apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs gcc-multilib g++-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler antlr3 gperf swig
+          sudo -E apt-get -y autoremove --purge
+          sudo -E apt-get clean
 
           df -h
 
@@ -102,23 +107,23 @@ jobs:
           cp -rf $(find ./bin/packages/ -type f -name "*.ipk") ./artifact/package/
           cp -rf $(find ./bin/targets/ -type f -name "*.buildinfo" -o -name "*.manifest") ./artifact/buildinfo/
 
-      # - name: Deliver buildinfo
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: OpenWrt_buildinfo
-      #     path: ./artifact/buildinfo/
+      - name: Deliver buildinfo
+        uses: actions/upload-artifact@v2
+        with:
+          name: OpenWrt_buildinfo
+          path: ./artifact/buildinfo/
 
-      # - name: Deliver package
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: OpenWrt_package
-      #     path: ./artifact/package/
+      - name: Deliver package
+        uses: actions/upload-artifact@v2
+        with:
+          name: OpenWrt_package
+          path: ./artifact/package/
 
-      # - name: Deliver firmware
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: OpenWrt_firmware
-      #     path: ./bin/targets/
+      - name: Deliver firmware
+        uses: actions/upload-artifact@v2
+        with:
+          name: OpenWrt_firmware
+          path: ./bin/targets/
 
       - name: Upload release asset
         if: github.event == 'release'
