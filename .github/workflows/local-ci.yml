@@ -50,13 +50,12 @@ jobs:
 
       - name: Update feeds
         run: |
-          sed -i 's/#src-git helloworld/src-git helloworld/g' ./feeds.conf.default
+          echo 'src-git helloworld https://github.com/fw876/helloworld' >> ./feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
       - name: Generate configuration file
         run: |
-          echo 'src-git helloworld https://github.com/fw876/helloworld' >> ./feeds.conf.default
           make defconfig
           sed -i '/CONFIG_TARGET_KERNEL_PARTSIZE/s/.*/CONFIG_TARGET_KERNEL_PARTSIZE=160/' ./.config
           sed -i '/CONFIG_TARGET_ROOTFS_PARTSIZE/s/.*/CONFIG_TARGET_ROOTFS_PARTSIZE=2048/' ./.config
